@@ -16,9 +16,9 @@
 #define FALSE 0
 
 // Bei der Auswertung des geratenen Wortes wird jeder Buchstabe markiert.
-// NOT_PRESENT steht für einen Buchstaben, der nicht im gesuchten Wort
-// vorkommt, PRESENT für einen Buchstaben, der vorkommt, aber fehl-
-// platziert ist, CORRECT für einen richtig platzierten Buchstaben.
+// `NOT_PRESENT` steht für einen Buchstaben, der nicht im gesuchten Wort
+// vorkommt, `PRESENT` für einen Buchstaben, der vorkommt, aber fehl-
+// platziert ist, `CORRECT` für einen richtig platzierten Buchstaben.
 enum status
 {
     UNMARKED,
@@ -30,7 +30,7 @@ enum status
 typedef enum status state_t;
 
 // Diese Struktur hält den aktuellen Zustand der Raterunde fest
-struct game_state
+typedef struct
 {
     // Zeiger auf das gesuchte Wort in der Wortliste
     char *word;
@@ -38,7 +38,7 @@ struct game_state
     char guess[WORD_BUF_LEN];
     // Markierungen für die Richtigkeit der geratenen Buchstaben
     state_t result[WORD_LENGTH];
-};
+} game_state;
 
 // Ein Zeiger auf die Liste der geladenen Wörter; wird von
 // fill_wordlist_from_file() befüllt.
@@ -54,9 +54,7 @@ _Bool word_is_allowed(const char *word)
     for (size_t i = 0; i < num_words_read; ++i)
     {
         if (strncmp(word, words + i * WORD_BUF_LEN, WORD_LENGTH) == 0)
-        {
             return TRUE;
-        }
     }
     return FALSE;
 }
@@ -69,6 +67,12 @@ char *strtolower(char *s)
         *p = tolower(*p);
     }
     return s;
+}
+
+inline void safe_free(void *p)
+{
+    if (p != NULL)
+        free(p);
 }
 
 // Textdatei mit den Wörtern lesen und den Beginn auf die Liste
@@ -101,7 +105,7 @@ int fill_wordlist_from_file(const char *filename)
             perror("realloc() failed");
             fclose(fp);
             if (line != NULL)
-                free(line);
+                safe_free(line);
             return EXIT_FAILURE;
         }
         strlcpy(words + num_words_read * WORD_BUF_LEN, line, WORD_BUF_LEN);
@@ -113,8 +117,8 @@ int fill_wordlist_from_file(const char *filename)
         perror("fread() failed");
         fclose(fp);
         if (line != NULL)
-            free(line);
-        free(words);
+            safe_free(line);
+        safe_free(words);
         return EXIT_FAILURE;
     }
 
@@ -126,7 +130,7 @@ int fill_wordlist_from_file(const char *filename)
 // Geht alle Markierungen durch und gibt TRUE zurück,
 // wenn das gesuchte Zeichen bereits als vorhanden
 // markiert wurde
-_Bool is_character_marked(struct game_state *state, char c)
+_Bool is_character_marked(game_state *state, char c)
 {
     for (int i = 0; i < WORD_LENGTH; ++i)
     {
@@ -137,7 +141,7 @@ _Bool is_character_marked(struct game_state *state, char c)
 }
 
 // den Zustand der laufenden Raterunde aktualisieren
-void update_state(struct game_state *state)
+void update_state(game_state *state)
 {
     // Jedes Zeichen als unmarkiert kennzeichnen
     memset(state->result, UNMARKED, sizeof(int) * WORD_LENGTH);
@@ -168,7 +172,7 @@ void update_state(struct game_state *state)
     }
 }
 
-void get_input(struct game_state *state, int trial)
+void get_input(game_state *state, int trial)
 {
     // solange eine Eingabe anfordern, bis sie gültig ist
     while (TRUE)
@@ -198,7 +202,7 @@ void get_input(struct game_state *state, int trial)
 }
 
 // dem User Feedback geben, wie gut sein Rateversuch war
-void print_result(const struct game_state *state)
+void print_result(const game_state *state)
 {
     // Das Ergebnis ein bisschen hübsch aufbereiten
     printf("! ");
@@ -227,6 +231,13 @@ void print_result(const struct game_state *state)
     printf("\033[0m\n");
 }
 
+_Bool another_round(void)
+{
+    printf("Noch eine Runde? (J/n) ");
+    char answer = tolower(getchar());
+    return answer == 'j' || answer == '\n';
+}
+
 // das eigentliche Spiel beginnt hier
 void play(void)
 {
@@ -239,12 +250,12 @@ void play(void)
 #endif
     printf("\nNERD WORD   ¯\\_(ツ)_/¯\n\n"
            "Errate das Wort mit %d Buchstaben in maximal %d Versuchen.\n"
-           "(Abbrechen mit Ctrl+C)\n",
+           "(Abbrechen mit Strg+C bzw. Ctrl+C)\n",
            WORD_LENGTH, MAX_TRIES);
     _Bool finished = FALSE;
     while (!finished)
     {
-        struct game_state state;
+        game_state state;
         // ein Wort zufällig auswählen
         state.word = words + WORD_BUF_LEN * (rand() % num_words_read);
 
@@ -262,21 +273,16 @@ void play(void)
             // hat der User das Spiel gewonnen
             if (strncmp(state.guess, state.word, WORD_LENGTH) == 0)
             {
-                printf("\nHurra, du hast das Wort im %d. Versuch gefunden!\n"
-                       "Noch eine Runde? (J/n) ",
-                       num_tries);
-                char answer = getchar();
-                finished = !(answer == 'j' || answer == '\n');
+                printf("\nHurra, du hast das Wort im %d. Versuch gefunden!\n", num_tries);
+                finished = !another_round();
                 break;
             }
             else if (num_tries == MAX_TRIES)
             {
                 printf("\nSchade, du hast das Wort nicht erraten.\n"
-                       "Es lautete: %s.\n"
-                       "Noch eine Runde? (J/n) ",
+                       "Es lautete: %s.\n",
                        state.word);
-                char answer = getchar();
-                finished = !(answer == 'j' || answer == '\n');
+                finished = !another_round();
                 break;
             }
         }
@@ -298,7 +304,7 @@ int main(int argc, char *argv[])
     // die erste Raterunde und ggf. weitere starten
     play();
     // den für die Wortliste belegten Speicher freigeben
-    free(words);
+    safe_free(words);
     // Danke, es war schön mit dir ;-)
     return EXIT_SUCCESS;
 }
