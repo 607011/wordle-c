@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Oliver Lau
+ * Copyright (c) 2024 Oliver Lau <ola@ct.de>, Heise Medien GmbH & Co. KG
  */
 
 #include <ctype.h>
@@ -168,12 +168,73 @@ void update_state(struct game_state *state)
     }
 }
 
+void get_input(struct game_state *state, int trial)
+{
+    // solange eine Eingabe anfordern, bis sie gültig ist
+    while (TRUE)
+    {
+        printf("\n%d. Versuch:"
+               "\n? ",
+               trial);
+        // Eingabe lesen
+        if (fgets(state->guess, WORD_BUF_LEN, stdin) == NULL)
+            return;
+        // überflüssige Zeichen verwerfen
+        fflush(stdin);
+        // Line feed am Ende der Eingabe durch String-Ende-Zeichen ersetzen
+        // TODO: damit rutschen bei der folgenden Prüfung Wörter aus vier Zeichen durch
+        state->guess[WORD_LENGTH] = '\0';
+        // Prüfen auf korrekte Wortlänge
+        if (strnlen(state->guess, WORD_LENGTH) != WORD_LENGTH)
+        {
+            printf("Bitte gib ein Wort mit %d Buchstaben ein!\n", WORD_LENGTH);
+            continue;
+        }
+        // Prüfen, ob das geratene Wort in der Liste erlaubter Wörter enthalten ist
+        if (word_is_allowed(state->guess))
+            break;
+        printf("Das Wort ist nicht in der Liste erlaubter Wörter.\n");
+    }
+    printf("! ");
+}
+
+void print_result(const struct game_state *state)
+{
+    // Das Ergebnis ein bisschen hübsch aufbereiten
+    for (int i = 0; i < WORD_LENGTH; ++i)
+    {
+        char c = state->guess[i];
+        switch (state->result[i])
+        {
+        case CORRECT:
+            // korrekt platzierte Buchstaben erscheinen Weiß auf grünem Hintergrund
+            printf("\033[37;42;1m%c", c);
+            break;
+        case PRESENT:
+            // vorhandene, aber fehlplatzierte Buchstaben erscheinen Weiß auf gelbem Hintergrund
+            printf("\033[37;43;1m%c", c);
+            break;
+        case NOT_PRESENT:
+            // fall-through
+        default:
+            // nicht vorhandene Buchstaben erscheinen Weiß auf rotem Hintergrund
+            printf("\033[37;41;1m%c", c);
+            break;
+        }
+    }
+    printf("\033[0m\n");
+}
+
 // das eigentliche Spiel beginnt hier
 void play(void)
 {
+#ifndef DEBUG
     // Zufallszahlengenerators mit der aktuellen
     // Unix-Time initialisieren
     srand(time(NULL));
+#else
+    srand(1);
+#endif
     printf("\nNERD WORD   ¯\\_(ツ)_/¯\n\n"
            "Errate das Wort mit %d Buchstaben in maximal %d Versuchen.\n"
            "(Abbrechen mit Ctrl+C)\n",
@@ -186,61 +247,15 @@ void play(void)
         state.word = words + WORD_BUF_LEN * (rand() % num_words_read);
 
         // eine Raterunde läuft über maximal 6 Versuche
-        for (int trial = 1; trial <= MAX_TRIES && !finished; ++trial)
+        for (int trial = 1; trial <= MAX_TRIES; ++trial)
         {
-            // solange eine Eingabe anfordern, bis sie gültig ist
-            while (TRUE)
-            {
-                printf("\n%d. Versuch:"
-                       "\n? ",
-                       trial);
-                // Eingabe lesen
-                if (fgets(state.guess, WORD_BUF_LEN, stdin) == NULL)
-                    return;
-                // überflüssige Zeichen verwerfen
-                fflush(stdin);
-                // Line feed am Ende der Eingabe durch String-Ende-Zeichen ersetzen
-                // TODO: damit rutschen bei der folgenden Prüfung Wörter aus vier Zeichen durch
-                state.guess[WORD_LENGTH] = '\0';
-                // Prüfen auf korrekte Wortlänge
-                if (strnlen(state.guess, WORD_LENGTH) != WORD_LENGTH)
-                {
-                    printf("Bitte gib ein Wort mit %d Buchstaben ein!\n", WORD_LENGTH);
-                    continue;
-                }
-                // Prüfen, ob das geratene Wort in der Liste erlaubter Wörter enthalten ist
-                if (word_is_allowed(state.guess))
-                    break;
-                printf("Das Wort ist nicht in der Liste erlaubter Wörter.\n");
-            }
-            printf("! ");
-
+            // User raten lassen
+            get_input(&state, trial);
             // geratenes Wort auswerten
             update_state(&state);
+            // Feedback geben
+            print_result(&state);
 
-            // Das Ergebnis ein bisschen hübsch aufbereiten
-            for (int i = 0; i < WORD_LENGTH; ++i)
-            {
-                char c = state.guess[i];
-                switch (state.result[i])
-                {
-                case CORRECT:
-                    // korrekt platzierte Buchstaben erscheinen Weiß auf grünem Hintergrund
-                    printf("\033[37;42;1m%c", c);
-                    break;
-                case PRESENT:
-                    // vorhandene, aber fehlplatzierte Buchstaben erscheinen Weiß auf gelbem Hintergrund
-                    printf("\033[37;43;1m%c", c);
-                    break;
-                case NOT_PRESENT:
-                    // fall-through
-                default:
-                    // nicht vorhandene Buchstaben erscheinen Weiß auf rotem Hintergrund
-                    printf("\033[37;41;1m%c", c);
-                    break;
-                }
-            }
-            printf("\033[0m\n");
             // geratenes Wort mit dem gesuchten vergleichen, wenn identisch,
             // hat der User das Spiel gewonnen
             if (strncmp(state.guess, state.word, WORD_LENGTH) == 0)
