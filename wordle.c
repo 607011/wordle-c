@@ -2,12 +2,19 @@
  * Copyright (c) 2024 Oliver Lau <ola@ct.de>, Heise Medien GmbH & Co. KG
  */
 
+#if _MSC_VER
+#include <Windows.h>
+#endif
+
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <time.h>
+
+#include "words.h"
 
 #define WORD_LENGTH 5
 #define WORD_BUF_LEN (WORD_LENGTH + 1)
@@ -33,27 +40,20 @@ typedef enum status state_t;
 typedef struct
 {
     // Zeiger auf das gesuchte Wort in der Wortliste
-    char *word;
+    const char *word;
     // das aktuell geratene Wort
     char guess[WORD_BUF_LEN];
     // Markierungen für die Richtigkeit der geratenen Buchstaben
     state_t result[WORD_LENGTH];
 } game_state;
 
-// Ein Zeiger auf die Liste der geladenen Wörter; wird von
-// fill_wordlist_from_file() befüllt.
-char *words = NULL;
-
-// Anzahl der Wörter, auf die `words` zeigt.
-size_t num_words_read = 0;
-
 // Prüft, ob das übergebene Wort in der geladenen Wortliste
 // enthalten ist
 _Bool word_is_allowed(const char *word)
 {
-    for (size_t i = 0; i < num_words_read; ++i)
+    for (size_t i = 0; i < NUM_WORDS; ++i)
     {
-        if (strncmp(word, words + i * WORD_BUF_LEN, WORD_LENGTH) == 0)
+        if (strncmp(word, words[i], WORD_LENGTH) == 0)
             return TRUE;
     }
     return FALSE;
@@ -64,7 +64,7 @@ char *strtolower(char *s)
 {
     for (char *p = s; *p != '\0'; p++)
     {
-        *p = tolower(*p);
+        *p = (char)tolower(*p);
     }
     return s;
 }
@@ -75,57 +75,6 @@ inline void safe_free(void *p)
         free(p);
 }
 
-// Textdatei mit den Wörtern lesen und den Beginn auf die Liste
-// der globalen Variable `words` zuweisen.
-int fill_wordlist_from_file(const char *filename)
-{
-    FILE *fp;
-    char *line = NULL;
-    size_t len = 0;
-    ssize_t nread;
-
-    fp = fopen(filename, "r");
-    if (fp == NULL)
-    {
-        perror("fopen() failed");
-        return EXIT_FAILURE;
-    }
-
-    while ((nread = getline(&line, &len, fp)) != -1)
-    {
-        if (nread != WORD_BUF_LEN)
-        {
-            fprintf(stderr, "WARNING: line %3zu has %zu characters (expected %d)\n",
-                    num_words_read + 1, nread - 1, WORD_LENGTH);
-            continue;
-        }
-        words = realloc(words, sizeof(char *) * num_words_read * WORD_BUF_LEN);
-        if (words == NULL)
-        {
-            perror("realloc() failed");
-            fclose(fp);
-            if (line != NULL)
-                safe_free(line);
-            return EXIT_FAILURE;
-        }
-        strlcpy(words + num_words_read * WORD_BUF_LEN, line, WORD_BUF_LEN);
-        ++num_words_read;
-    }
-
-    if (ferror(fp))
-    {
-        perror("fread() failed");
-        fclose(fp);
-        if (line != NULL)
-            safe_free(line);
-        safe_free(words);
-        return EXIT_FAILURE;
-    }
-
-    // Eingabedatei schließen
-    fclose(fp);
-    return EXIT_SUCCESS;
-}
 
 // Geht alle Markierungen durch und gibt TRUE zurück,
 // wenn das gesuchte Zeichen bereits als vorhanden
@@ -175,29 +124,36 @@ void update_state(game_state *state)
 void get_input(game_state *state, int trial)
 {
     // solange eine Eingabe anfordern, bis sie gültig ist
-    while (TRUE)
+    _Bool bad_word = TRUE;
+    while (bad_word)
     {
         printf("\n%d. Versuch:"
                "\n? ",
                trial);
         // Eingabe lesen
-        if (fgets(state->guess, WORD_BUF_LEN, stdin) == NULL)
+#ifdef _MSC_VER
+        DWORD nread;
+        HANDLE hstdin = GetStdHandle(STD_INPUT_HANDLE);
+        if (!ReadConsole(hstdin, state->guess, WORD_BUF_LEN, &nread, NULL))
             return;
         // überflüssige Zeichen verwerfen
-        fflush(stdin);
-        // Line feed am Ende der Eingabe durch String-Ende-Zeichen ersetzen
-        // TODO: damit rutschen bei der folgenden Prüfung Wörter aus vier Zeichen durch
+        int ch;
+        while ((ch = getchar()) != EOF && ch != '\n')
+            /* */;
+#else        
+        if (fgets(state->guess, WORD_BUF_LEN, stdin) == NULL)
+            return;
+        while ((ch = getch()) != EOF && ch != '\n')
+            /* */;
+#endif
+        // nach dem 5. Zeichen abschneiden
         state->guess[WORD_LENGTH] = '\0';
-        // Prüfen auf korrekte Wortlänge
-        if (strnlen(state->guess, WORD_LENGTH) != WORD_LENGTH)
-        {
-            printf("Bitte gib ein Wort mit %d Buchstaben ein!\n", WORD_LENGTH);
-            continue;
-        }
         // Prüfen, ob das geratene Wort in der Liste erlaubter Wörter enthalten ist
-        if (word_is_allowed(state->guess))
-            break;
-        printf("Das Wort ist nicht in der Liste erlaubter Wörter.\n");
+        bad_word = !word_is_allowed(state->guess);
+        if (bad_word)
+        {
+            printf("Das Wort ist nicht in der Liste erlaubter Wörter.\n");
+        }
     }
 }
 
@@ -234,7 +190,7 @@ void print_result(const game_state *state)
 _Bool another_round(void)
 {
     printf("Noch eine Runde? (J/n) ");
-    char answer = tolower(getchar());
+    char answer = (char)tolower(getchar());
     return answer == 'j' || answer == '\n';
 }
 
@@ -244,7 +200,7 @@ void play(void)
 #ifndef DEBUG
     // Zufallszahlengenerators mit der aktuellen
     // Unix-Time initialisieren
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
 #else
     srand(1);
 #endif
@@ -252,15 +208,18 @@ void play(void)
            "Errate das Wort mit %d Buchstaben in maximal %d Versuchen.\n"
            "(Abbrechen mit Strg+C bzw. Ctrl+C)\n",
            WORD_LENGTH, MAX_TRIES);
+
     _Bool finished = FALSE;
     while (!finished)
     {
         game_state state;
         // ein Wort zufällig auswählen
-        state.word = words + WORD_BUF_LEN * (rand() % num_words_read);
-
+        state.word = words[rand() % NUM_WORDS];
+#ifdef DEBUG
+        printf("Hint: '%s'", state.word);
+#endif
         // eine Raterunde läuft über maximal 6 Versuche
-        for (int num_tries = 1; num_tries <= MAX_TRIES; ++num_tries)
+        for (int num_tries = 1; num_tries <= MAX_TRIES && !finished; ++num_tries)
         {
             // User raten lassen
             get_input(&state, num_tries);
@@ -290,21 +249,13 @@ void play(void)
 }
 
 // Einstieg ins Programm
-int main(int argc, char *argv[])
+int main(void)
 {
-    // Dateiname für die Wortliste aus den Kommandozeilenargument lesen,
-    // wenn nicht vorhanden, die Vorgabe "words.txt" wählen.
-    const char *words_filename = argc > 1
-                                     ? argv[1]
-                                     : "words.txt";
-    // Wortliste lesen
-    int rc = fill_wordlist_from_file(words_filename);
-    if (rc != EXIT_SUCCESS)
-        return rc;
     // die erste Raterunde und ggf. weitere starten
     play();
     // den für die Wortliste belegten Speicher freigeben
-    safe_free(words);
+    safe_free((void*)words);
     // Danke, es war schön mit dir ;-)
+    printf("\033[0m\n");
     return EXIT_SUCCESS;
 }
