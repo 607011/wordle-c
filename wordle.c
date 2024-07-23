@@ -198,6 +198,7 @@ void get_input(struct game_state *state, int trial)
     printf("! ");
 }
 
+// dem User Feedback geben, wie gut sein Rateversuch war
 void print_result(const struct game_state *state)
 {
     // Das Ergebnis ein bisschen hübsch aufbereiten
@@ -207,21 +208,22 @@ void print_result(const struct game_state *state)
         switch (state->result[i])
         {
         case CORRECT:
-            // korrekt platzierte Buchstaben erscheinen Weiß auf grünem Hintergrund
+            // korrekt platzierte Buchstaben erscheinen auf grünem Hintergrund
             printf("\033[37;42;1m%c", c);
             break;
         case PRESENT:
-            // vorhandene, aber fehlplatzierte Buchstaben erscheinen Weiß auf gelbem Hintergrund
+            // vorhandene, aber fehlplatzierte Buchstaben erscheinen auf gelbem Hintergrund
             printf("\033[37;43;1m%c", c);
             break;
         case NOT_PRESENT:
             // fall-through
         default:
-            // nicht vorhandene Buchstaben erscheinen Weiß auf rotem Hintergrund
+            // nicht vorhandene Buchstaben erscheinen auf rotem Hintergrund
             printf("\033[37;41;1m%c", c);
             break;
         }
     }
+    // Schrift- und Hintergrundfarbe auf Defaults zurücksetzen
     printf("\033[0m\n");
 }
 
@@ -247,10 +249,10 @@ void play(void)
         state.word = words + WORD_BUF_LEN * (rand() % num_words_read);
 
         // eine Raterunde läuft über maximal 6 Versuche
-        for (int trial = 1; trial <= MAX_TRIES; ++trial)
+        for (int num_tries = 1; num_tries <= MAX_TRIES; ++num_tries)
         {
             // User raten lassen
-            get_input(&state, trial);
+            get_input(&state, num_tries);
             // geratenes Wort auswerten
             update_state(&state);
             // Feedback geben
@@ -262,7 +264,7 @@ void play(void)
             {
                 printf("\nHurra, du hast das Wort im %d. Versuch gefunden!\n"
                        "Noch eine Runde? (J/n) ",
-                       trial);
+                       num_tries);
                 char answer = getchar();
                 finished = !(answer == 'j' || answer == '\n');
                 break;
