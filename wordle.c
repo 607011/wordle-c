@@ -75,7 +75,6 @@ inline void safe_free(void *p)
         free(p);
 }
 
-
 // Geht alle Markierungen durch und gibt TRUE zurück,
 // wenn das gesuchte Zeichen bereits als vorhanden
 // markiert wurde
@@ -136,16 +135,14 @@ void get_input(game_state *state, int trial)
         HANDLE hstdin = GetStdHandle(STD_INPUT_HANDLE);
         if (!ReadConsole(hstdin, state->guess, WORD_BUF_LEN, &nread, NULL))
             return;
+#else
+        if (fgets(state->guess, WORD_BUF_LEN, stdin) == NULL)
+            return;
+#endif
         // überflüssige Zeichen verwerfen
         int ch;
         while ((ch = getchar()) != EOF && ch != '\n')
             /* */;
-#else        
-        if (fgets(state->guess, WORD_BUF_LEN, stdin) == NULL)
-            return;
-        while ((ch = getch()) != EOF && ch != '\n')
-            /* */;
-#endif
         // nach dem 5. Zeichen abschneiden
         state->guess[WORD_LENGTH] = '\0';
         // Prüfen, ob das geratene Wort in der Liste erlaubter Wörter enthalten ist
@@ -254,7 +251,7 @@ int main(void)
     // die erste Raterunde und ggf. weitere starten
     play();
     // den für die Wortliste belegten Speicher freigeben
-    safe_free((void*)words);
+    safe_free((void *)words);
     // Danke, es war schön mit dir ;-)
     printf("\033[0m\n");
     return EXIT_SUCCESS;
