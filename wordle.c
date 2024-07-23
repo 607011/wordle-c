@@ -16,7 +16,6 @@
 
 #include "words.h"
 
-#define WORD_LENGTH 5
 #define WORD_BUF_LEN (WORD_LENGTH + 1)
 #define MAX_TRIES 6
 #define TRUE 1
@@ -63,9 +62,7 @@ _Bool word_is_allowed(const char *word)
 char *strtolower(char *s)
 {
     for (char *p = s; *p != '\0'; p++)
-    {
         *p = (char)tolower(*p);
-    }
     return s;
 }
 
@@ -92,15 +89,14 @@ _Bool is_character_marked(game_state *state, char c)
 void update_state(game_state *state)
 {
     // Jedes Zeichen als unmarkiert kennzeichnen
-    memset(state->result, UNMARKED, sizeof(int) * WORD_LENGTH);
+    for (int i = 0; i < WORD_LENGTH; ++i)
+        state->result[i] = UNMARKED;
 
     // korrekt platzierte Zeichen finden und als solche markieren
     for (int i = 0; i < WORD_LENGTH; ++i)
     {
         if (state->guess[i] == state->word[i])
-        {
             state->result[i] = CORRECT;
-        }
     }
 
     // noch mal alle Zeichen durchgehen und die als
@@ -191,8 +187,8 @@ _Bool another_round(void)
     return answer == 'j' || answer == '\n';
 }
 
-// das eigentliche Spiel beginnt hier
-void play(void)
+// Einstieg ins Programm
+int main(void)
 {
 #ifndef DEBUG
     // Zufallszahlengenerators mit der aktuellen
@@ -212,10 +208,7 @@ void play(void)
         game_state state;
         // ein Wort zufällig auswählen
         state.word = words[rand() % NUM_WORDS];
-#ifdef DEBUG
-        printf("Hint: '%s'", state.word);
-#endif
-        // eine Raterunde läuft über maximal 6 Versuche
+        // eine Raterunde läuft über maximal 6 (`MAX_TRIES`) Versuche
         for (int num_tries = 1; num_tries <= MAX_TRIES && !finished; ++num_tries)
         {
             // User raten lassen
@@ -243,15 +236,6 @@ void play(void)
             }
         }
     }
-}
-
-// Einstieg ins Programm
-int main(void)
-{
-    // die erste Raterunde und ggf. weitere starten
-    play();
-    // den für die Wortliste belegten Speicher freigeben
-    safe_free((void *)words);
     // Danke, es war schön mit dir ;-)
     printf("\033[0m\n");
     return EXIT_SUCCESS;
