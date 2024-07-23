@@ -1,6 +1,6 @@
 #include "words.h"
 
-const char words[NUM_WORDS][6] = {
+const char words[NUM_WORDS][WORD_LENGTH + 1] = {
     "abort",
     "acorn",
     "acryl",
@@ -440,6 +440,7 @@ const char words[NUM_WORDS][6] = {
     "route",
     "rover",
     "rsync",
+    "rubik",
     "sabre",
     "samba",
     "sanyo",
