@@ -195,13 +195,13 @@ void get_input(struct game_state *state, int trial)
             break;
         printf("Das Wort ist nicht in der Liste erlaubter Wörter.\n");
     }
-    printf("! ");
 }
 
 // dem User Feedback geben, wie gut sein Rateversuch war
 void print_result(const struct game_state *state)
 {
     // Das Ergebnis ein bisschen hübsch aufbereiten
+    printf("! ");
     for (int i = 0; i < WORD_LENGTH; ++i)
     {
         char c = state->guess[i];
@@ -265,6 +265,16 @@ void play(void)
                 printf("\nHurra, du hast das Wort im %d. Versuch gefunden!\n"
                        "Noch eine Runde? (J/n) ",
                        num_tries);
+                char answer = getchar();
+                finished = !(answer == 'j' || answer == '\n');
+                break;
+            }
+            else if (num_tries == MAX_TRIES)
+            {
+                printf("\nSchade, du hast das Wort nicht erraten.\n"
+                       "Es lautete: %s.\n"
+                       "Noch eine Runde? (J/n) ",
+                       state.word);
                 char answer = getchar();
                 finished = !(answer == 'j' || answer == '\n');
                 break;
