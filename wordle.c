@@ -12,18 +12,18 @@
 // etwa für die Ein- und Ausgabe, zur Zufallszahlenerzeugung oder zur
 // Stringverarbeitung bereitstellen oder Typen und Werte für den Umgang
 // mit Boole'schen Werten definieren
-#include <ctype.h> // tolower()
-#include <stdbool.h> // bool, true und false
-#include <stdio.h> // stdin, getchar(), fgets()
-#include <stdlib.h> // realloc(), free(), srand(), rand()
-#include <string.h> // strncmp(), strchr()
-#include <time.h>  // time()
+#include <ctype.h>       // tolower()
+#include <stdbool.h>     // bool, true und false
+#include <stdio.h>       // stdin, getchar(), fgets()
+#include <stdlib.h>      // atoi(), srand(), rand()
+#include <string.h>      // strncmp(), strchr()
+#include <time.h>        // time()
 
 // Definition zur Wortliste in der Datei words.c einbinden
 #include "words.h"
 
 #define WORD_BUF_LEN (WORD_LENGTH + 1)
-#define MAX_TRIES 6
+#define MAX_TRIES (6)
 
 // Bei der Auswertung des geratenen Wortes wird jeder Buchstabe markiert:
 // `NOT_PRESENT` steht für einen Buchstaben, der nicht im gesuchten Wort
@@ -31,10 +31,10 @@
 // platziert ist, `CORRECT` für einen richtig platzierten Buchstaben.
 enum status
 {
-    UNMARKED,
-    NOT_PRESENT,
-    PRESENT,
-    CORRECT
+    UNMARKED,     // 0
+    NOT_PRESENT,  // 1
+    PRESENT,      // 2
+    CORRECT       // 3
 };
 
 typedef enum status state_t;
@@ -43,21 +43,24 @@ typedef enum status state_t;
 typedef struct
 {
     // Zeiger auf das gesuchte Wort in der Wortliste
-    const char *word;
+    const char* word;
     // das aktuell geratene Wort
     char guess[WORD_BUF_LEN];
     // Markierungen für die Richtigkeit der geratenen Buchstaben
     state_t result[WORD_LENGTH];
+    // Nummer des Rateversuchs
+    int n_tries;
 } game_state;
 
 // Prüft, ob das übergebene Wort in der geladenen Wortliste
 // enthalten ist
-bool word_is_allowed(const char *word)
+bool word_is_allowed(const char* word)
 {
-    // Sequenzielle Suche nach dem Wort in der der Liste
+    // Sequenzielle Suche nach dem Wort in der Liste
     // der erlaubten Wörter. Im Kontext dieses Spielchens
     // ist das völlig okay, performanter wäre aber eine
-    // binäre Suche (divide & conquer).
+    // binäre Suche ("divide & conquer"), zumal die Wortliste
+    // bereits lexikografisch sortiert ist.
     for (int i = 0; i < NUM_WORDS; ++i)
     {
         if (strncmp(word, words[i], WORD_LENGTH) == 0)
@@ -66,25 +69,10 @@ bool word_is_allowed(const char *word)
     return false;
 }
 
-// eine 0-terminierte Zeichenfolge in Kleinbuchstaben wandeln
-char *strtolower(char *s)
-{
-    for (char *p = s; *p != '\0'; p++)
-        *p = (char)tolower(*p);
-    return s;
-}
-
-// Komfortfunktion
-inline void safe_free(void *p)
-{
-    if (p != NULL)
-        free(p);
-}
-
-// Geht alle Markierungen durch und gibt TRUE zurück,
+// Alle Markierungen durchgehen und gibt TRUE zurückgeben,
 // wenn das gesuchte Zeichen bereits als vorhanden
 // markiert wurde
-bool is_character_marked(game_state *state, char c)
+bool is_character_marked(game_state* state, char c)
 {
     for (int i = 0; i < WORD_LENGTH; ++i)
     {
