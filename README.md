@@ -12,7 +12,7 @@
 
 #### Voraussetzungen
 
-- [Buildtools for Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) herunterladen (siehe „Tools für Visual Studio“)
+- [Buildtools for Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) herunterladen (siehe unter „Tools für Visual Studio“)
 - Installer starten
 - im Installer ein Häkchen bei „Desktopentwicklung mit C++“ setzen
 
@@ -22,7 +22,7 @@ Die Entwicklerkonsole kann nicht mit ANSI-Escape-Codes umgehen, darum die Standa
 winget install --id Git.Git -e --source winget
 ```
 
-Kompilierumgebunung aktivieren:
+Kompilierumgebung aktivieren:
 
 ```
 "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsamd64_x86.bat"
