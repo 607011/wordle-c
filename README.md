@@ -2,8 +2,7 @@
 
 **Wordle für die Kommandozeile, geschrieben in C**
 
-<img width="410" alt="grafik" src="https://github.com/user-attachments/assets/c39ecc75-ecf8-4cfc-b943-1da5a29382dc">
-
+<img width="410" alt="grafik" src="https://github.com/user-attachments/assets/4f2618f4-23b7-4f70-a49b-9fe79d4e199f">
 
 
 ## Kompilieren
