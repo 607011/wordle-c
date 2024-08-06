@@ -212,8 +212,9 @@ int main(int argc, char* argv[])
         printf("Hint: %s\n", state.word);
 #endif
         // eine Raterunde läuft über maximal 6 (`MAX_TRIES`) Versuche
+        bool doRestart = false;
         for (state.n_tries = 1;
-             state.n_tries <= MAX_TRIES && keepRunning;
+             state.n_tries <= MAX_TRIES && !doRestart;
              ++state.n_tries)
         {
             // User raten lassen
@@ -229,6 +230,7 @@ int main(int argc, char* argv[])
             {
                 printf("\nHurra, Du hast das Wort im %d. Versuch gefunden!\n",
                        state.n_tries);
+                doRestart = true;
                 keepRunning = another_round();
             }
             else if (state.n_tries == MAX_TRIES)
