@@ -72,9 +72,9 @@ bool word_is_allowed(const char* word)
 // Alle Markierungen durchgehen und gibt TRUE zurückgeben,
 // wenn das gesuchte Zeichen bereits als vorhanden
 // markiert wurde
-bool is_character_marked(game_state* state, char c)
+bool is_character_marked(game_state* state, char c, int fromIdx)
 {
-    for (int i = 0; i < WORD_LENGTH; ++i)
+    for (int i = fromIdx; i < WORD_LENGTH; ++i)
     {
         if (state->guess[i] == c && state->result[i] != UNMARKED)
             return true;
@@ -107,7 +107,7 @@ void update_state(game_state *state)
         char c = state->guess[i];
         state->result[i] =
             (strchr(state->word, c) != NULL &&
-             !is_character_marked(state, c))
+             !is_character_marked(state, c, i))
                 ? PRESENT
                 : NOT_PRESENT;
     }
