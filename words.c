@@ -1,8 +1,10 @@
 // Copyright (c) 2023-2024 Heise Medien GmbH & Co. KG
 
+#include <stddef.h>
+
 #include "words.h"
 
-const char words[NUM_WORDS][WORD_LENGTH + 1] = {
+const char *words[] = {
     "abort",
     "acorn",
     "acryl",
@@ -552,6 +554,8 @@ const char words[NUM_WORDS][WORD_LENGTH + 1] = {
     "swift",
     "swipe",
     "szene",
+    "taste",
+    "teste",
     "tails",
     "tapes",
     "tarif",
@@ -629,5 +633,6 @@ const char words[NUM_WORDS][WORD_LENGTH + 1] = {
     "zeiss",
     "zelle",
     "zotac",
-    "zyxel"
+    "zyxel",
+    NULL
 };

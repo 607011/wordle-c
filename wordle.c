@@ -48,6 +48,8 @@ typedef struct
     char guess[WORD_BUF_LEN];
     // Markierungen für die Richtigkeit der geratenen Buchstaben
     state_t result[WORD_LENGTH];
+    // Markierung ob ein Buchstabe aus dem Wort bereits benutzt wurde
+    bool used[WORD_LENGTH];
     // Nummer des Rateversuchs
     int n_tries;
 } game_state;
@@ -61,7 +63,7 @@ bool word_is_allowed(const char* word)
     // ist das völlig okay, performanter wäre aber eine
     // binäre Suche ("divide & conquer"), zumal die Wortliste
     // bereits lexikografisch sortiert ist.
-    for (int i = 0; i < NUM_WORDS; ++i)
+    for (int i = 0; words[i]; ++i)
     {
         if (strncmp(word, words[i], WORD_LENGTH) == 0)
             return true;
@@ -69,15 +71,17 @@ bool word_is_allowed(const char* word)
     return false;
 }
 
-// Alle Markierungen durchgehen und gibt TRUE zurückgeben,
-// wenn das gesuchte Zeichen bereits als vorhanden
-// markiert wurde
-bool is_character_marked(game_state* state, char c, int fromIdx)
+// Das gesuchte Wort nach einem Zeichen des geratenen Wortes durchsuchen,
+// wenn das gesuchte Zeichen noch nicht als benutzt markiert wurde dieses
+// markieren und true zurueckgeben
+bool is_character_unmarked(game_state* state, char c)
 {
-    for (int i = fromIdx; i < WORD_LENGTH; ++i)
+    for (int i = 0; i < WORD_LENGTH; ++i)
     {
-        if (state->guess[i] == c && state->result[i] != UNMARKED)
+        if (state->word[i] == c && state->used[i] == false) {
+            state->used[i] = true;
             return true;
+        }
     }
     return false;
 }
@@ -86,14 +90,18 @@ bool is_character_marked(game_state* state, char c, int fromIdx)
 void update_state(game_state *state)
 {
     // Jedes Zeichen als unmarkiert kennzeichnen
-    for (int i = 0; i < WORD_LENGTH; ++i)
+    for (int i = 0; i < WORD_LENGTH; ++i) {
         state->result[i] = UNMARKED;
+        state->used[i] = false;
+    }
 
     // korrekt platzierte Zeichen finden und als solche markieren
     for (int i = 0; i < WORD_LENGTH; ++i)
     {
-        if (state->guess[i] == state->word[i])
+        if (state->guess[i] == state->word[i]) {
             state->result[i] = CORRECT;
+            state->used[i] = true;
+        }
     }
 
     // noch mal alle Zeichen durchgehen und die als
@@ -104,45 +112,45 @@ void update_state(game_state *state)
         // Zeichen ist als korrekt markiert, also überspringen
         if (state->result[i] == CORRECT)
             continue;
-        char c = state->guess[i];
-        state->result[i] =
-            (strchr(state->word, c) != NULL &&
-             !is_character_marked(state, c, i))
-                ? PRESENT
-                : NOT_PRESENT;
+        state->result[i] = is_character_unmarked(state, state->guess[i])
+            ? PRESENT : NOT_PRESENT;
     }
 }
 
 void get_input(game_state* state)
 {
     // solange eine Eingabe anfordern, bis sie gültig ist
-    bool bad_word = true;
+    bool bad_word;
     do
     {
-        printf("\n%d. Versuch:"
-               "\n? ",
-               state->n_tries);
+        printf("\n%d. Versuch: ", state->n_tries);
         // Eingabe lesen
-#ifdef _MSC_VER
-        DWORD nread;
-        HANDLE hstdin = GetStdHandle(STD_INPUT_HANDLE);
-        if (!ReadConsole(hstdin, state->guess, WORD_BUF_LEN, &nread, NULL))
-            return;
-#else
-        if (fgets(state->guess, WORD_BUF_LEN, stdin) == NULL)
-            return;
-#endif
+        bad_word = 0;
+        for (int i = 0; i < WORD_LENGTH; i++) {
+            state->guess[i] = getchar();
+            if (state->guess[i] == '\n') {
+                state->guess[i] = '\0';
+                bad_word = 1;
+                break;
+            }
+        }
         // überflüssige Zeichen verwerfen
-        int ch;
-        while ((ch = getchar()) != EOF && ch != '\n')
-            /* lesen bis Eingabe- oder Zeilenende */;
+        if (!bad_word)
+            while (getchar() != '\n')
+                ;
         // nach dem 5. Zeichen abschneiden
         state->guess[WORD_LENGTH] = '\0';
-        // Prüfen, ob das geratene Wort in der Liste erlaubter Wörter
-        // enthalten ist
-        bad_word = !word_is_allowed(state->guess);
-        if (bad_word)
-            printf("Das Wort ist nicht in der Liste erlaubter Wörter.\n");
+#ifdef DEBUG
+        printf("Eingabe: '%s'\n", state->guess);
+#endif
+        if (bad_word) {
+            printf("Bitte %d Buchstaben eingeben.\n", WORD_LENGTH);
+	} else {
+	    bad_word = !word_is_allowed(state->guess);
+	    if (bad_word)
+		printf("Das Wort ist nicht in der Liste erlaubter Wörter.\n");
+	}
+
     }
     while (bad_word);
 }
@@ -184,6 +192,10 @@ bool another_round(void)
 {
     printf("Noch eine Runde? (J/n) ");
     char answer = (char)tolower(getchar());
+    // überflüssige Zeichen verwerfen
+    if (answer != '\n')
+        while (getchar() != '\n')
+            ;
     bool yes = answer == 'j' || answer == '\n';
     if (yes)
         printf("\nSuper! Dann mal los ...\n");
@@ -206,9 +218,12 @@ int main(int argc, char* argv[])
     while (keepRunning)
     {
         game_state state;
-        // ein Wort zufällig auswählen
-        state.word = words[rand() % NUM_WORDS];
+        int num_words;
+        // worte zaehlen und ein Wort zufällig auswählen
+        for (num_words = 0; words[num_words];  num_words++);
+        state.word = words[rand() % num_words];
 #ifdef DEBUG
+        state.word = "cebit";
         printf("Hint: %s\n", state.word);
 #endif
         // eine Raterunde läuft über maximal 6 (`MAX_TRIES`) Versuche
