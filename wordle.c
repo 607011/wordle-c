@@ -219,8 +219,9 @@ int main(int argc, char* argv[])
     {
         game_state state;
         int num_words;
-        // worte zaehlen und ein Wort zufällig auswählen
-        for (num_words = 0; words[num_words];  num_words++);
+        // Wörter zählen und ein Wort zufällig auswählen
+        for (num_words = 0; words[num_words] != NULL;  num_words++)
+           ;
         state.word = words[rand() % num_words];
 #ifdef DEBUG
         state.word = "cebit";
