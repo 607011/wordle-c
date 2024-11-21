@@ -125,12 +125,12 @@ void get_input(game_state* state)
     {
         printf("\n%d. Versuch: ", state->n_tries);
         // Eingabe lesen
-        bad_word = 0;
+        bad_word = false;
         for (int i = 0; i < WORD_LENGTH; i++) {
             state->guess[i] = getchar();
             if (state->guess[i] == '\n') {
                 state->guess[i] = '\0';
-                bad_word = 1;
+                bad_word = true;
                 break;
             }
         }
