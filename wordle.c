@@ -148,7 +148,7 @@ void get_input(game_state* state)
 	} else {
 	    bad_word = !word_is_allowed(state->guess);
 	    if (bad_word)
-		printf("Das Wort ist nicht in der Liste erlaubter Wörter.\n");
+		    printf("Das Wort ist nicht in der Liste erlaubter Wörter.\n");
 	}
 
     }
