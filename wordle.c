@@ -63,7 +63,7 @@ bool word_is_allowed(const char* word)
     // ist das völlig okay, performanter wäre aber eine
     // binäre Suche ("divide & conquer"), zumal die Wortliste
     // bereits lexikografisch sortiert ist.
-    for (int i = 0; words[i]; ++i)
+    for (int i = 0; words[i] != NULL; ++i)
     {
         if (strncmp(word, words[i], WORD_LENGTH) == 0)
             return true;
