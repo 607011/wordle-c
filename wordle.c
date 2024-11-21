@@ -72,8 +72,8 @@ bool word_is_allowed(const char* word)
 }
 
 // Das gesuchte Wort nach einem Zeichen des geratenen Wortes durchsuchen,
-// wenn das gesuchte Zeichen noch nicht als benutzt markiert wurde dieses
-// markieren und true zurueckgeben
+// wenn das gesuchte Zeichen noch nicht als benutzt markiert wurde, dieses
+// markieren und true zurückgeben
 bool is_character_unmarked(game_state* state, char c)
 {
     for (int i = 0; i < WORD_LENGTH; ++i)
