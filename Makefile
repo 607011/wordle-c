@@ -1,4 +1,6 @@
-all:
+all: wordle
+
+wordle: wordle.c words.c words.h Makefile
 	gcc -std=c17 -Os -Wall -pedantic wordle.c words.c -o wordle
 
 exe: Makefile words.c wordle.c
