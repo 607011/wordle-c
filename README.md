@@ -15,7 +15,7 @@
 - Installer starten
 - im Installer ein Häkchen bei „Desktopentwicklung mit C++“ setzen
 
-Die Entwicklerkonsole kann nicht mit ANSI-Escape-Codes umgehen, darum die Standard-Eingabeaufforderung starten: Windows-Taste drücken, `eingabeaufforderung` eintippen, Enter drücken. Darin eintippen, um Git zu installieren, falls noch nicht vorhanden:
+Die Entwicklerkonsole kann nicht mit ANSI-Escape-Codes umgehen, darum die Standard-Eingabeaufforderung starten: Windows-Taste drücken, `eingabeaufforderung` eintippen, Enter drücken. Darin Folgendes eintippen, um Git zu installieren, falls noch nicht vorhanden:
 
 ```
 winget install --id Git.Git -e --source winget
